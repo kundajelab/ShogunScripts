@@ -24,12 +24,11 @@ TRAININGDATAFILENAME = sys.argv[1]
 TRAININGLABELSFILENAME = sys.argv[2]
 VALIDATIONDATAFILENAME = sys.argv[3]
 VALIDATIONLABELSFILENAME = sys.argv[4]
-NUMSHIFTS = int(sys.argv[5])
-TRAINPREDICTIONSEPSILONFILENAME = sys.argv[6]
-VALIDATIONPREDICTIONSEPSILONFILENAME = sys.argv[7]
-DEGREE = int(sys.argv[8])
-SVMC = float(sys.argv[9]) # Initially 1
-
+TRAINPREDICTIONSEPSILONFILENAME = sys.argv[5]
+VALIDATIONPREDICTIONSEPSILONFILENAME = sys.argv[6]
+DEGREE = int(sys.argv[7])
+SVMC = float(sys.argv[8]) # Initially 1
+NUMSHIFTS = int(sys.argv[9])
 
 def makeStringList(stringFileName):
 	# Get a string list from a file
