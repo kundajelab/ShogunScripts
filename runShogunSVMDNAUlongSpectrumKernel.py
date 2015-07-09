@@ -90,11 +90,13 @@ def runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
 
 	# predictions
 	print "Making predictions!"
-	out1=svm.apply(feats_train).get_labels()
+	out1DecisionValues = svm.apply(feats_train)
+	out1=out1DecisionValues.get_labels()
 	kernel.init(feats_train, feats_test)
+	out2DecisionValues = svm.apply(feats_test)
 	out2=svm.apply(feats_test).get_labels()
 
-	return out1,out2
+	return out1,out2,out1DecisionValues,out2DecisionValues
 
 
 def writeFloatList(floatList, floatListFileName):
@@ -107,7 +109,7 @@ def writeFloatList(floatList, floatListFileName):
 	floatListFile.close()
 
 
-def outputResultsClassification(out1, out2, train_lt, test_lt):
+defoutputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt):
 	# Output the results to the appropriate output files
 	writeFloatList(out1, TRAINPREDICTIONSEPSILONFILENAME)
 	writeFloatList(out2, VALIDATIONPREDICTIONSEPSILONFILENAME)
@@ -156,5 +158,5 @@ if __name__=='__main__':
 	train_lt = makeIntList(TRAININGLABELSFILENAME)
 	test_xt = makeStringList(VALIDATIONDATAFILENAME)
 	test_lt = makeIntList(VALIDATIONLABELSFILENAME)
-	[out1, out2] = runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt)
-	outputResultsClassification(out1, out2, train_lt, test_lt)
+	[out1, out2, out1DecisionValues, out2DecisionValues] = runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt)
+	outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt)
