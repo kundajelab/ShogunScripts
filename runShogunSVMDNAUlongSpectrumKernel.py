@@ -122,14 +122,31 @@ def outputResultsClassification(out1, out2, train_lt, test_lt):
 	print fracTrainCorrect
 	
 	numValidCorrect = 0
+	numPosCorrect = 0
+	numNegCorrect = 0
 	for i in range(len(test_lt)):
 		# Iterate through validation labels and count the number that are the same as the predicted labels
 		if out2[i] == test_lt[i]:
 			# The current prediction is correct
 			numValidCorrect = numValidCorrect + 1
+			if (out2[i] == 1) and (test_lt[i] == 1):
+				# The prediction is a positive example
+				numPosCorrect = numPosCorrect + 1
+			else:
+				numNegCorrect = numNegCorrect + 1
 	fracValidCorrect = float(numValidCorrect)/float(len(test_lt))
 	print "Validation accuracy:"
 	print fracValidCorrect
+	print "Number of correct positive examples:"
+	print numPosCorrect
+	print "Number of correct negative examples:"
+	print numNegCorrect
+	
+	validLabels = BinaryLabels(test_lt)
+	evaluatorValid = ROCEvaluation()
+	evaluatorValid.evaluate(out2DecisionValues, validLabels)
+	print "Validation AUC:"
+	print evaluatorValid.get_auROC()
 
 
 if __name__=='__main__':
