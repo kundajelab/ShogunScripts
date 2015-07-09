@@ -10,6 +10,7 @@ from modshogun import BinaryLabels, LibSVM
 from modshogun import CommUlongStringKernel
 from modshogun import StringUlongFeatures
 from modshogun import SortUlongString
+from modshogun import ROCEvaluation
 import sys
 
 
