@@ -109,7 +109,7 @@ def writeFloatList(floatList, floatListFileName):
 	floatListFile.close()
 
 
-defoutputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt):
+def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt):
 	# Output the results to the appropriate output files
 	writeFloatList(out1, TRAINPREDICTIONSEPSILONFILENAME)
 	writeFloatList(out2, VALIDATIONPREDICTIONSEPSILONFILENAME)
