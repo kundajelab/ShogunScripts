@@ -21,6 +21,7 @@ VALIDATIONPREDICTIONSEPSILONFILENAME = sys.argv[6]
 K = int(sys.argv[7])
 SVMC = float(sys.argv[8]) # Initially 1
 GAP = int(sys.argv[9]) # Initially 0
+DEGREE = int(sys.argv[10]) # Initially 2
 
 
 def makeStringList(stringFileName):
@@ -88,7 +89,7 @@ def runShogunSVMProteinPolyMatchSpectrumKernel(train_xt, train_lt, test_xt):
 	feats_test.add_preprocessor(preproc)
 	feats_test.apply_preprocessor()
 	
-	kernel=PolyMatchWordStringKernel(feats_train, feats_train, 2, True)
+	kernel=PolyMatchWordStringKernel(feats_train, feats_train, DEGREE, True)
 	kernel.io.set_loglevel(MSG_DEBUG)
 
     # init kernel
