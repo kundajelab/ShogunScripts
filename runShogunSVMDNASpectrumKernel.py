@@ -27,27 +27,41 @@ def makeStringList(stringFileName):
 	# Get a string list from a file
 	stringList = []
 	stringFile = open(stringFileName)
+	skippedLines = []
 	
+	lineCount = 0
 	for line in stringFile:
 		# Iterate through the string file and get the string from each line
-		stringList.append(line.strip())
-		
+		if "N" in line.strip():
+			# The current sequence has an N, so skip it
+			skippedLines.append(lineCount)
+		else:
+			stringList.append(line.strip())
+		lineCount = lineCount + 1
+	
+	print len(skippedLines)
 	stringFile.close()
-	return stringList
+	return [stringList, skippedLines]
 
 
-def makeIntList(intFileName):
+def makeIntList(intFileName, skippedLines):
 	# Get a float list from a file
 	intList = []
 	intFile = open(intFileName)
 	
+	lineCount = 0
 	for line in intFile:
 		# Iterate through the float file and get the float from each line
+		if lineCount in skippedLines:
+			# Skip the current line
+			lineCount = lineCount + 1
+			continue
 		label = int(line.strip())
 		if label == 0:
 			# Labels are 1 and 0 instead of 1 and -1
 			label = -1
 		intList.append(label)
+		lineCount = lineCount + 1
 		
 	intFile.close()
 	return np.array(intList)
@@ -157,10 +171,10 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 
 
 if __name__=='__main__':
-	print('LibSVR')
-	train_xt = makeStringList(TRAININGDATAFILENAME)
-	train_lt = makeIntList(TRAININGLABELSFILENAME)
-	test_xt = makeStringList(VALIDATIONDATAFILENAME)
-	test_lt = makeIntList(VALIDATIONLABELSFILENAME)
+	print('LibSVM')
+	[train_xt, skippedLinesTrain] = makeStringList(TRAININGDATAFILENAME)
+	train_lt = makeIntList(TRAININGLABELSFILENAME, skippedLinesTrain)
+	[test_xt, skippedLinesValid] = makeStringList(VALIDATIONDATAFILENAME)
+	test_lt = makeIntList(VALIDATIONLABELSFILENAME, skippedLinesValid)
 	[out1, out2, out1DecisionValues, out2DecisionValues] = runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt)
 	outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt)

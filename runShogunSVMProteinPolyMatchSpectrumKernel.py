@@ -1,15 +1,13 @@
 # Original code from: ../examples/documented/python_modular/regression_libsvr_modular.py
-# and: ../examples/documented/python_modular/kernel_comm_ulong_string_modular.py
+# and: ../examples/documented/python_modular/serialization_string_kernels_modular.py
 
 import numpy as np
-from modshogun import StringCharFeatures
-from modshogun import DNA, Labels
+from modshogun import StringCharFeatures, StringWordFeatures, SortWordString
+from modshogun import PROTEIN, Labels
 from modshogun import MSG_DEBUG
 from modshogun import SVMLight
+from modshogun import PolyMatchWordStringKernel
 from modshogun import BinaryLabels, LibSVM
-from modshogun import CommUlongStringKernel
-from modshogun import StringUlongFeatures
-from modshogun import SortUlongString
 from modshogun import ROCEvaluation
 import sys
 
@@ -29,68 +27,54 @@ def makeStringList(stringFileName):
 	# Get a string list from a file
 	stringList = []
 	stringFile = open(stringFileName)
-	skippedLines = []
 	
-	lineCount = 0
 	for line in stringFile:
 		# Iterate through the string file and get the string from each line
-		if "N" in line.strip():
-			# The current sequence has an N, so skip it
-			skippedLines.append(lineCount)
-		else:
-			stringList.append(line.strip())
-		lineCount = lineCount + 1
-	
-	print len(skippedLines)
+		stringList.append(line.strip())
+		
 	stringFile.close()
-	return [stringList, skippedLines]
+	return stringList
 
 
-def makeIntList(intFileName, skippedLines):
+def makeIntList(intFileName):
 	# Get a float list from a file
 	intList = []
 	intFile = open(intFileName)
 	
-	lineCount = 0
 	for line in intFile:
 		# Iterate through the float file and get the float from each line
-		if lineCount in skippedLines:
-			# Skip the current line
-			lineCount = lineCount + 1
-			continue
 		label = int(line.strip())
 		if label == 0:
 			# Labels are 1 and 0 instead of 1 and -1
 			label = -1
 		intList.append(label)
-		lineCount = lineCount + 1
 		
 	intFile.close()
 	return np.array(intList)
 	
 	
-def runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
+def runShogunSVMProteinPolyMatchSpectrumKernel(train_xt, train_lt, test_xt):
 	"""
 	run svm with spectrum kernel
 	"""
 
     ##################################################
-    # set up svr
-	charfeat_train = StringCharFeatures(train_xt, DNA)
-	feats_train = StringUlongFeatures(DNA)
+    # set up svm
+	charfeat_train = StringCharFeatures(train_xt, PROTEIN)
+	feats_train = StringWordFeatures(PROTEIN)
 	feats_train.obtain_from_char(charfeat_train, K-1, K, GAP, False)
-	preproc=SortUlongString()
+	preproc=SortWordString()
 	preproc.init(feats_train)
 	feats_train.add_preprocessor(preproc)
 	feats_train.apply_preprocessor()
 	
-	charfeat_test = StringCharFeatures(test_xt, DNA)
-	feats_test=StringUlongFeatures(DNA)
+	charfeat_test = StringCharFeatures(test_xt, PROTEIN)
+	feats_test=StringWordFeatures(PROTEIN)
 	feats_test.obtain_from_char(charfeat_test, K-1, K, GAP, False)
 	feats_test.add_preprocessor(preproc)
 	feats_test.apply_preprocessor()
 	
-	kernel=CommUlongStringKernel(feats_train, feats_train, False)
+	kernel=PolyMatchWordStringKernel(feats_train, feats_train, 2, True)
 	kernel.io.set_loglevel(MSG_DEBUG)
 
     # init kernel
@@ -108,7 +92,7 @@ def runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
 	out1=out1DecisionValues.get_labels()
 	kernel.init(feats_train, feats_test)
 	out2DecisionValues = svm.apply(feats_test)
-	out2=svm.apply(feats_test).get_labels()
+	out2=out2DecisionValues.get_labels()
 
 	return out1,out2,out1DecisionValues,out2DecisionValues
 
@@ -137,6 +121,12 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 	fracTrainCorrect = float(numTrainCorrect)/float(len(train_lt))
 	print "Training accuracy:"
 	print fracTrainCorrect
+	
+	trainLabels = BinaryLabels(train_lt)
+	evaluatorTrain = ROCEvaluation()
+	evaluatorTrain.evaluate(out1DecisionValues, trainLabels)
+	print "Training AUC:"
+	print evaluatorTrain.get_auROC()
 	
 	numValidCorrect = 0
 	numPosCorrect = 0
@@ -167,10 +157,10 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 
 
 if __name__=='__main__':
-	print('LibSVM')
-	[train_xt, skippedLinesTrain] = makeStringList(TRAININGDATAFILENAME)
-	train_lt = makeIntList(TRAININGLABELSFILENAME, skippedLinesTrain)
-	[test_xt, skippedLinesValid] = makeStringList(VALIDATIONDATAFILENAME)
-	test_lt = makeIntList(VALIDATIONLABELSFILENAME, skippedLinesValid)
-	[out1, out2, out1DecisionValues, out2DecisionValues] = runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt)
+	print('LibSVR')
+	train_xt = makeStringList(TRAININGDATAFILENAME)
+	train_lt = makeIntList(TRAININGLABELSFILENAME)
+	test_xt = makeStringList(VALIDATIONDATAFILENAME)
+	test_lt = makeIntList(VALIDATIONLABELSFILENAME)
+	[out1, out2, out1DecisionValues, out2DecisionValues] = runShogunSVMProteinPolyMatchSpectrumKernel(train_xt, train_lt, test_xt)
 	outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt)
