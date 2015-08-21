@@ -210,13 +210,13 @@ def outputResultsClassificationWithMajorityClass(out1, out2, out1DecisionValues,
 	print "Validation accuracy:"
 	print fracValidCorrect
 	print "Fraction of correct positive examples:"
-	print float(numPosCorrect)/float(test_lt.count(1))
+	print float(numPosCorrect)/float((test_lt == 1).sum())
 	print "Fraction of correct negative examples:"
-	print float(numNegCorrect)/float(test_lt.count(0))
+	print float(numNegCorrect)/float((test_lt == 0).sum())
 	print "Fraction of correct majority class examples:"
-	print float(numMajorityClassCorrect)/float(test_majorityClass.count(1))
+	print float(numMajorityClassCorrect)/float((test_majorityClass == 1).sum())
 	print "Fraction of correct minority class examples:"
-	print float(numMinorityClassCorrect)/float(test_majorityClass.count(0))
+	print float(numMinorityClassCorrect)/float((test_majorityClass == 0).sum())
 	
 	validLabels = BinaryLabels(test_lt)
 	evaluatorValid = ROCEvaluation()
@@ -235,7 +235,7 @@ if __name__=='__main__':
 	if len(sys.argv) > 10:
 		# There is majority class information
 		validationMajorityClassFileName = sys.argv[10]
-		test_majorityClass = makeIntList(validationMajorityClassFileName)
+		test_majorityClass = makeIntList(validationMajorityClassFileName, skippedLinesValid)
 		outputResultsClassificationWithMajorityClass(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt, test_majorityClass)
 	else:
 		outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt)
