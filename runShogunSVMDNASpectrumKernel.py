@@ -214,13 +214,13 @@ def outputResultsClassificationWithMajorityClass(out1, out2, out1DecisionValues,
 	print "Validation accuracy:"
 	print fracValidCorrect
 	print "Fraction of correct positive examples:"
-	print float(numPosCorrect)/float((test_lt == 1).sum())
+	print float(numPosCorrect)/float(len(np.where(test_lt > 0)[0]))
 	print "Fraction of correct negative examples:"
-	print float(numNegCorrect)/float((test_lt == 0).sum())
+	print float(numNegCorrect)/float(len(np.where(test_lt <= 0)[0]))
 	print "Fraction of correct majority class examples:"
-	print float(numMajorityClassCorrect)/float((test_majorityClass == 1).sum())
+	print float(numMajorityClassCorrect)/float(len(np.where(test_majorityClass > 0)[0]))
 	print "Fraction of correct minority class examples:"
-	print float(numMinorityClassCorrect)/float((test_majorityClass == 0).sum())
+	print float(numMinorityClassCorrect)/float(len(np.where(test_majorityClass <= 0)[0]))
 	
 	validLabels = BinaryLabels(test_lt)
 	evaluatorValid = ROCEvaluation()
