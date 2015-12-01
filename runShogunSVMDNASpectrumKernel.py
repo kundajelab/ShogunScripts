@@ -32,11 +32,11 @@ def makeStringList(stringFileName):
 	lineCount = 0
 	for line in stringFile:
 		# Iterate through the string file and get the string from each line
-		if "N" in line.strip():
+		if "N" in line.strip() or "n" in line.strip():
 			# The current sequence has an N, so skip it
 			skippedLines.append(lineCount)
 		else:
-			stringList.append(line.strip())
+			stringList.append(line.strip().upper())
 		lineCount = lineCount + 1
 	
 	print len(skippedLines)
