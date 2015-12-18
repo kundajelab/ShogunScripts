@@ -7,7 +7,7 @@ from modshogun import DNA, Labels
 from modshogun import MSG_DEBUG
 from modshogun import SVMLight
 from modshogun import CommWordStringKernel
-from modshogun import BinaryLabels, LibSVM
+from modshogun import BinaryLabels, LibSVMOneClass,RealFeatures
 from modshogun import ROCEvaluation
 
 import argparse
@@ -15,16 +15,17 @@ import sys
 
 
 def parseArgument():
-	parser = argparse.ArgumentParser(description='Run Shogun SVM DNA Spectrum Kernel')
+	parser = argparse.ArgumentParser(description='Run Shogun One Class SVM DNA Spectrum Kernel')
 	parser.add_argument('string', metavar='[train data]', nargs=1, help='Training Data File, format: sequence (ATCG) one instance per line' )
-	parser.add_argument('string', metavar='[train labels]',  nargs=1, help='Training Labels File, format: 0/1 where each label of an instance matches the data line number' )
+	parser.add_argument('string', metavar='[train labels]',  nargs=1, help='Training Labels File, format: 0/1 where each label of an instance matches the data line number (because this is One-class SVM training set should be all one class therefore should be all "1"' )
 	parser.add_argument('string', metavar='[validation data]',  nargs=1, help='Validation Data File, same format as training data' )
-	parser.add_argument('string', metavar='[validation label]',  nargs=1, help='Validation Lables File, same format as training label' )
+	parser.add_argument('string', metavar='[validation label]',  nargs=1, help='Validation Lables File, same format as training label (can be either 0 or 1)' )
 	parser.add_argument('string', metavar='[train classification]',  nargs=1, help='Classification result on training set' )
 	parser.add_argument('string', metavar='[validation classification]',  nargs=1, help='Classification result on validation set' )
 	parser.add_argument('int', metavar='[k]',  nargs=1, help='Value for K' )
 	parser.add_argument('float', metavar='[SVM C]',  nargs=1, help='SVM C' )
 	parser.add_argument('int', metavar='[number of Gaps]',  nargs=1, help='Number of Gaps' )
+	parser.add_argument('float', metavar='[epsilon]',  nargs=1, help='Value of epsilon' )
 	args = parser.parse_args()
 
 	global TRAININGDATAFILENAME 
@@ -36,6 +37,7 @@ def parseArgument():
 	global SVMC 
 	global GAP
 	global K 
+	global EPSILON
 	
 	TRAININGDATAFILENAME = sys.argv[1]
 	TRAININGLABELSFILENAME = sys.argv[2]
@@ -46,6 +48,7 @@ def parseArgument():
 	K = int(sys.argv[7])
 	SVMC = float(sys.argv[8]) # Initially 1
 	GAP = int(sys.argv[9]) # Initially 0
+	EPSILON = float(sys.argv[10])
 
 def makeStringList(stringFileName):
 	# Get a string list from a file
@@ -91,7 +94,7 @@ def makeIntList(intFileName, skippedLines):
 	return np.array(intList)
 	
 	
-def runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
+def runShogunOneClassSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
 	"""
 	run svm with spectrum kernel
 	"""
@@ -120,9 +123,10 @@ def runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
 	
 	# run svm model
 	print "Ready to train!"
-	svm=LibSVM(SVMC, kernel, labels)
-	svm.io.set_loglevel(MSG_DEBUG)
+	svm=LibSVMOneClass(SVMC, kernel)
+	svm.set_epsilon(EPSILON)
 	svm.train()
+
 
 	# predictions
 	print "Making predictions!"
@@ -131,6 +135,10 @@ def runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt):
 	kernel.init(feats_train, feats_test)
 	out2DecisionValues = svm.apply(feats_test)
 	out2=out2DecisionValues.get_labels()
+
+
+#	predictions = svm.apply(feats_test)
+#	return predictions, svm, predictions.get_labels()
 
 	return out1,out2,out1DecisionValues,out2DecisionValues
 
@@ -260,11 +268,11 @@ if __name__=='__main__':
 	train_lt = makeIntList(TRAININGLABELSFILENAME, skippedLinesTrain)
 	[test_xt, skippedLinesValid] = makeStringList(VALIDATIONDATAFILENAME)
 	test_lt = makeIntList(VALIDATIONLABELSFILENAME, skippedLinesValid)
-	[out1, out2, out1DecisionValues, out2DecisionValues] = runShogunSVMDNASpectrumKernel(train_xt, train_lt, test_xt)
-	if len(sys.argv) > 10:
-		# There is majority class information
-		validationMajorityClassFileName = sys.argv[10]
-		test_majorityClass = makeIntList(validationMajorityClassFileName, skippedLinesValid)
-		outputResultsClassificationWithMajorityClass(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt, test_majorityClass)
-	else:
-		outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt)
+	[out1, out2, out1DecisionValues, out2DecisionValues] = runShogunOneClassSVMDNASpectrumKernel(train_xt, train_lt, test_xt)
+#	if len(sys.argv) > 10:
+#		# There is majority class information
+#		validationMajorityClassFileName = sys.argv[10]
+#		test_majorityClass = makeIntList(validationMajorityClassFileName, skippedLinesValid)
+#		outputResultsClassificationWithMajorityClass(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt, test_majorityClass)
+#	else:
+	outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValues, train_lt, test_lt)
