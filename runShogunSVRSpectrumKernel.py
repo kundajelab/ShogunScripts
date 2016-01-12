@@ -5,7 +5,7 @@ import numpy as np
 from modshogun import RegressionLabels, RealFeatures
 from modshogun import LibSVR, LIBSVR_NU_SVR, LIBSVR_EPSILON_SVR
 from modshogun import StringCharFeatures, RealFeatures, CombinedFeatures, StringWordFeatures, SortWordString
-from modshogun import DNA, PROTEIN, Labels
+from modshogun import DNA, Labels
 from modshogun import MSG_DEBUG
 from modshogun import SVMLight
 from modshogun import CommWordStringKernel
@@ -27,31 +27,52 @@ VALIDATIONDATAFILENAME = sys.argv[3]
 VALIDATIONLABELSFILENAME = sys.argv[4]
 TRAINPREDICTIONSEPSILONFILENAME = sys.argv[5]
 VALIDATIONPREDICTIONSEPSILONFILENAME = sys.argv[6]
-K = int(sys.argv[7])
-SVRPARAM = float(sys.argv[8]) # Initially 0.1
+LOGLABELS = int(sys.argv[7])
+K = int(sys.argv[8])
+SVRPARAM = float(sys.argv[9]) # Initially 0.1
+GAP = int(sys.argv[10]) # Initially 0
 
 
 def makeStringList(stringFileName):
 	# Get a string list from a file
 	stringList = []
 	stringFile = open(stringFileName)
+	skippedLines = []
 	
+	lineCount = 0
 	for line in stringFile:
 		# Iterate through the string file and get the string from each line
-		stringList.append(line.strip())
-		
+		if "N" in line.strip() or "n" in line.strip():
+			# The current sequence has an N, so skip it
+			skippedLines.append(lineCount)
+		else:
+			stringList.append(line.strip().upper())
+		lineCount = lineCount + 1
+	
+	print len(skippedLines)
 	stringFile.close()
-	return stringList
+	return [stringList, skippedLines]
 
 
-def makeFloatList(floatFileName):
+def makeFloatList(floatFileName, skippedLines):
 	# Get a float list from a file
 	floatList = []
 	floatFile = open(floatFileName)
 	
+	lineCount = 0
 	for line in floatFile:
 		# Iterate through the float file and get the float from each line
-		floatList.append(float(line.strip()))
+		if lineCount in skippedLines:
+			# Skip the current line
+			lineCount = lineCount + 1
+			continue
+		if LOGLABELS == 1:
+			# Log the signal
+			floatList.append(np.log2(float(line.strip())))
+		else:
+			# Do not log the signal
+			floatList.append(float(line.strip()))
+		lineCount = lineCount + 1
 		
 	floatFile.close()
 	return np.array(floatList)
@@ -64,17 +85,17 @@ def runShogunSVRSpectrumKernel(train_xt, train_lt, test_xt, svm_c=1):
 
     ##################################################
     # set up svr
-	charfeat_train = StringCharFeatures(train_xt, PROTEIN)
-	feats_train = StringWordFeatures(PROTEIN)
-	feats_train.obtain_from_char(charfeat_train, K-1, K, 0, False)
+	charfeat_train = StringCharFeatures(train_xt, DNA)
+	feats_train = StringWordFeatures(DNA)
+	feats_train.obtain_from_char(charfeat_train, K-1, K, GAP, False)
 	preproc=SortWordString()
 	preproc.init(feats_train)
 	feats_train.add_preprocessor(preproc)
 	feats_train.apply_preprocessor()
 	
-	charfeat_test = StringCharFeatures(test_xt, PROTEIN)
-	feats_test=StringWordFeatures(PROTEIN)
-	feats_test.obtain_from_char(charfeat_test, K-1, K, 0, False)
+	charfeat_test = StringCharFeatures(test_xt, DNA)
+	feats_test=StringWordFeatures(DNA)
+	feats_test.obtain_from_char(charfeat_test, K-1, K, GAP, False)
 	feats_test.add_preprocessor(preproc)
 	feats_test.apply_preprocessor()
 	
@@ -125,9 +146,9 @@ def outputResults(out1_epsilon, out2_epsilon, kernel,  train_lt, test_lt):
 
 if __name__=='__main__':
 	print('LibSVR')
-	train_xt = makeStringList(TRAININGDATAFILENAME)
-	train_lt = makeFloatList(TRAININGLABELSFILENAME)
-	test_xt = makeStringList(VALIDATIONDATAFILENAME)
-	test_lt = makeFloatList(VALIDATIONLABELSFILENAME)
-	[out1_epsilon, out2_epsilon, kernel] = runShogunSVRSpectrumKernel(train_xt, train_lt, test_xt, svm_c=1)
+	[train_xt, skippedLinesTrain] = makeStringList(TRAININGDATAFILENAME)
+	train_lt = makeFloatList(TRAININGLABELSFILENAME, skippedLinesTrain)
+	[test_xt, skippedLinesTest] = makeStringList(VALIDATIONDATAFILENAME)
+	test_lt = makeFloatList(VALIDATIONLABELSFILENAME, skippedLinesTest)
+	[out1_epsilon, out2_epsilon, kernel] = runShogunSVRSpectrumKernel(train_xt, train_lt, test_xt, svm_c=SVRPARAM)
 	outputResults(out1_epsilon, out2_epsilon, kernel, train_lt, test_lt)
