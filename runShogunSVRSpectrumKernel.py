@@ -29,8 +29,9 @@ TRAINPREDICTIONSEPSILONFILENAME = sys.argv[5]
 VALIDATIONPREDICTIONSEPSILONFILENAME = sys.argv[6]
 LOGLABELS = int(sys.argv[7])
 K = int(sys.argv[8])
-SVRPARAM = float(sys.argv[9]) # Initially 0.1
-GAP = int(sys.argv[10]) # Initially 0
+SVRPARAM = float(sys.argv[9]) # Initially 1
+SVMC = float(sys.argv[10])
+GAP = int(sys.argv[11]) # Initially 0
 
 
 def makeStringList(stringFileName):
@@ -150,5 +151,5 @@ if __name__=='__main__':
 	train_lt = makeFloatList(TRAININGLABELSFILENAME, skippedLinesTrain)
 	[test_xt, skippedLinesTest] = makeStringList(VALIDATIONDATAFILENAME)
 	test_lt = makeFloatList(VALIDATIONLABELSFILENAME, skippedLinesTest)
-	[out1_epsilon, out2_epsilon, kernel] = runShogunSVRSpectrumKernel(train_xt, train_lt, test_xt, svm_c=SVRPARAM)
+	[out1_epsilon, out2_epsilon, kernel] = runShogunSVRSpectrumKernel(train_xt, train_lt, test_xt, svm_c=SVMC)
 	outputResults(out1_epsilon, out2_epsilon, kernel, train_lt, test_lt)
