@@ -69,7 +69,7 @@ def makeFloatList(floatFileName, skippedLines):
 			continue
 		if LOGLABELS == 1:
 			# Log the signal
-			floatList.append(np.log2(float(line.strip())))
+			floatList.append(np.log2(float(line.strip()) + 0.0001)) # + 0.0001 prevents log2(0) from being taken
 		else:
 			# Do not log the signal
 			floatList.append(float(line.strip()))
