@@ -1,0 +1,100 @@
+import sys
+import argparse
+import numpy as np
+from Bio import SeqIO
+#from Bio.Seq import Seq
+codeDir = "/home/ikaplow/RegulatoryElementEvolutionProject/src/"
+sys.path.insert(0,codeDir)
+from deeplearning.sequenceOperations import createPositiveSetFromNarrowPeaks
+
+def parseArgument():
+	# Parse the input
+	parser = argparse.ArgumentParser(description = "Prepare numpy arrays to go into a Keras deep learning model for binary classification")
+	parser.add_argument("--positivePeakFileName", action="append", required=True, help='narrowPeak file with peaks from the positive set for each task')
+	parser.add_argument("--negativePeakFileName", required=True, help='narrowPeak file with peaks from the negative set for all tasks')
+	parser.add_argument("--genomeFileName", required=True, help='fasta file with genome sequence')
+	parser.add_argument("--outputFileNamePrefix", required=True, help='Prefix of file names where numpy arrays will be recorded, should not end in _')
+	parser.add_argument("--allDataFileNameTrainSuffix", default="data_train.txt", required=False, help='Suffix of file name that will contain the training data')
+	parser.add_argument("--allDataFileNameValidSuffix", default="data_valid.txt", required=False, help='Suffix of file name that will contain the validation data')
+	parser.add_argument("--labelsFileNameTrainSuffix", default="labels_train.txt", required=False, help='Suffix of file name that will contain the training data labels')
+	parser.add_argument("--labelsFileNameValidSuffix", default="labels_valid.txt", required=False, help='Suffix of file name that will contain the validation data labels')
+	parser.add_argument("--trainChroms", action='append', required=False, \
+		default=["chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chr3", "chr4", "chr5", "chr6", \
+			"chr7", "chrX"], \
+		help='List of chromosomes that will be used for training')
+	parser.add_argument("--validChroms", action='append', required=False, default=["chr8", "chr9"], help='List of chromosomes that will be used for validation')
+	parser.add_argument("--sequenceLength", type=int, required=False, default=1000, help='Length of sequence that will be inputted into the model')
+	parser.add_argument("--maxPeakLength", type=int, required=False, default=None, help='Maximum length of peaks that will be inputted into the model')
+	options = parser.parse_args();
+	return options
+
+def recordSequences(sequenceRecord, allDataFile):
+	# Record a sequeunce and its label
+	allDataFile.write(str(sequenceRecord.seq).strip() + "\n")
+	# Repeat for the reverse complement
+	RC = sequenceRecord.seq.reverse_complement()
+	allDataFile.write(str(RC).strip() + "\n")
+	return allDataFile
+
+def makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(positivePeakFileNameList, negativePeakFileName, genomeFileName, allDataFileName=None, labelsFileName=None, \
+			createOptimalBed=True, createOptimalBedFilt=True, dataShape=(1,4,1000), maxPeakLength=None, \
+			chroms=["chr10", "chr11", "chr12", "chr13", "chr14", "chr15", "chr16", "chr17", "chr18", "chr19", "chr20", "chr21", "chr22", "chr3", "chr4", "chr5", \
+				"chr6", "chr7", "chrX"]):
+	# Convert each peak into a numpy array
+	positiveFastaFileNameList = []
+	numPositives = np.zeros(len(positivePeakFileNameList))
+	currentTaskNum = 0
+	for positivePeakFileName in positivePeakFileNameList:
+		# Iterate through the positives for each task and get the fasta file for each
+		_, _, positiveRegionListFilt, _, _, positiveFastaFileName =\
+			createPositiveSetFromNarrowPeaks(positivePeakFileName, genomeFileName, dataShape, createOptimalBed=createOptimalBed, \
+				createOptimalBedFilt=createOptimalBedFilt, maxPeakLength=maxPeakLength, chroms=chroms)
+		positiveFastaFileNameList.append(positiveFastaFileName)
+		numPositives[currentTaskNum] = int(positiveRegionListFilt.count())
+		currentTaskNum = currentTaskNum + 1
+	posLabels = np.zeros((int(2 * np.sum(numPositives)), len(positivePeakFileNameList)), dtype=np.int8)
+	totalPositives = int(0)
+	for i in range(len(positivePeakFileNameList)):
+		# Iterate through the positive examples and set the labels appropriately
+		posLabels[totalPositives:int(totalPositives + (2 * numPositives[i])), i] = 1
+		totalPositives = totalPositives + (2 *numPositives[i])
+	negativePeakFileNamePrefix, negativeRegionList, negativeRegionListFilt, halfWindowSize, summitPlusMinus, negativeFastaFileName =\
+		createPositiveSetFromNarrowPeaks(negativePeakFileName, genomeFileName, dataShape, \
+			createOptimalBed=createOptimalBed, createOptimalBedFilt=createOptimalBedFilt, maxPeakLength=maxPeakLength, chroms=chroms)
+	negLabels = np.zeros((2 * negativeRegionListFilt.count(), len(positivePeakFileNameList)), dtype=np.int8)
+	labels = np.concatenate((posLabels, negLabels), axis=0)
+	print ("The total number of examples is: " + str(labels.shape[0]))
+	allDataFile = open(allDataFileName, 'w+')
+	for positiveFastaFileName in positiveFastaFileNameList:
+		# Iterate through the fasta files for the positives and add each to the dataset
+		for positiveRecord in SeqIO.parse(positiveFastaFileName, "fasta"):
+			# Iterate through the positive fastas and make a numpy array for each
+			allDataFile = recordSequences(positiveRecord, allDataFile)
+		os.remove(positiveFastaFileName)
+	for negativeRecord in SeqIO.parse(negativeFastaFileName, "fasta"):
+		# Iterate through the positive fastas and make a numpy array for each
+		allDataFile = recordSequences(negativeRecord, allDataFile)
+	os.remove(negativeFastaFileName)
+	if not allDataFileName:
+		# Do not save the data and the labels
+		assert (not labelsFileName)
+		return allData, labels
+	allDataFile.close()
+	np.savetxt(labelsFileName, labels, fmt="%d", delimiter="\t")
+
+def prepareStringAndLabelFiles(options):
+	# Prepare numpy arrays to go into a Keras deep learning model for binary classification
+	allDataFileNameTrain = options.outputFileNamePrefix + "_" + options.allDataFileNameTrainSuffix
+	labelsFileNameTrain = options.outputFileNamePrefix + "_" + options.labelsFileNameTrainSuffix
+	makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(options.positivePeakFileName, options.negativePeakFileName, options.genomeFileName,\
+		allDataFileName=allDataFileNameTrain, labelsFileName=labelsFileNameTrain, createOptimalBed=True, createOptimalBedFilt=True, \
+		dataShape=(1,4,options.sequenceLength), maxPeakLength=options.maxPeakLength, chroms=options.trainChroms)
+	allDataFileNameValid = options.outputFileNamePrefix + "_" + options.allDataFileNameValidSuffix
+	labelsFileNameValid = options.outputFileNamePrefix + "_" + options.labelsFileNameValidSuffix
+	makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(options.positivePeakFileName, options.negativePeakFileName, options.genomeFileName,\
+		allDataFileName=allDataFileNameValid, labelsFileName=labelsFileNameValid, createOptimalBed=True, createOptimalBedFilt=True, \
+		dataShape=(1,4,options.sequenceLength), maxPeakLength=options.maxPeakLength, chroms=options.validChroms)
+
+if __name__=="__main__":
+	options = parseArgument()
+	prepareStringAndLabelFiles(options)

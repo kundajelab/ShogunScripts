@@ -159,7 +159,6 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 	print "Training accuracy:"
 	print fracTrainCorrect
 
-	trainLabels = BinaryLabels(train_lt)
 	prEvaluatorTrain = AccuracyMeasure()
 	prEvaluatorTrain.evaluate(out1DecisionValues, trainLabels)
 	print "Training sensitivity:"
@@ -167,6 +166,7 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 	print "Training specificity:"
 	print prEvaluatorTrain.get_specificity()
 	
+	trainLabels = BinaryLabels(train_lt)
 	evaluatorTrain = ROCEvaluation()
 	evaluatorTrain.evaluate(out1DecisionValues, trainLabels)
 	print "Training AUC:"
@@ -198,7 +198,6 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 	print "Number of correct negative examples:"
 	print numNegCorrect
 
-	validLabels = BinaryLabels(test_lt)
 	prEvaluatorValid = AccuracyMeasure()
 	prEvaluatorValid.evaluate(out2DecisionValues, validLabels)
 	print "Validation sensitivity:"
@@ -206,6 +205,7 @@ def outputResultsClassification(out1, out2, out1DecisionValues, out2DecisionValu
 	print "Validation specificity:"
 	print prEvaluatorValid.get_specificity()
 	
+	validLabels = BinaryLabels(test_lt)
 	evaluatorValid = ROCEvaluation()
 	evaluatorValid.evaluate(out2DecisionValues, validLabels)
 	print "Validation AUC:"
