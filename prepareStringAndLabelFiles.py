@@ -26,6 +26,8 @@ def parseArgument():
 	parser.add_argument("--validChroms", action='append', required=False, default=["chr8", "chr9"], help='List of chromosomes that will be used for validation')
 	parser.add_argument("--sequenceLength", type=int, required=False, default=1000, help='Length of sequence that will be inputted into the model')
 	parser.add_argument("--maxPeakLength", type=int, required=False, default=None, help='Maximum length of peaks that will be inputted into the model')
+	parser.add_argument("--noTrain", action='store_true', required=False, help='Do not make a training set')
+	parser.add_argument("--noValid", action='store_true', required=False, help='Do not make a validation set')
 	options = parser.parse_args();
 	return options
 
@@ -85,16 +87,20 @@ def makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(positivePeakFileN
 
 def prepareStringAndLabelFiles(options):
 	# Prepare numpy arrays to go into a Keras deep learning model for binary classification
-	allDataFileNameTrain = options.outputFileNamePrefix + "_" + options.allDataFileNameTrainSuffix
-	labelsFileNameTrain = options.outputFileNamePrefix + "_" + options.labelsFileNameTrainSuffix
-	makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(options.positivePeakFileName, options.negativePeakFileName, options.genomeFileName,\
-		allDataFileName=allDataFileNameTrain, labelsFileName=labelsFileNameTrain, createOptimalBed=True, createOptimalBedFilt=True, \
-		dataShape=(1,4,options.sequenceLength), maxPeakLength=options.maxPeakLength, chroms=options.trainChroms)
-	allDataFileNameValid = options.outputFileNamePrefix + "_" + options.allDataFileNameValidSuffix
-	labelsFileNameValid = options.outputFileNamePrefix + "_" + options.labelsFileNameValidSuffix
-	makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(options.positivePeakFileName, options.negativePeakFileName, options.genomeFileName,\
-		allDataFileName=allDataFileNameValid, labelsFileName=labelsFileNameValid, createOptimalBed=True, createOptimalBedFilt=True, \
-		dataShape=(1,4,options.sequenceLength), maxPeakLength=options.maxPeakLength, chroms=options.validChroms)
+	if not options.noTrain:
+		# Make a training set
+		allDataFileNameTrain = options.outputFileNamePrefix + "_" + options.allDataFileNameTrainSuffix
+		labelsFileNameTrain = options.outputFileNamePrefix + "_" + options.labelsFileNameTrainSuffix
+		makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(options.positivePeakFileName, options.negativePeakFileName, options.genomeFileName,\
+			allDataFileName=allDataFileNameTrain, labelsFileName=labelsFileNameTrain, createOptimalBed=True, createOptimalBedFilt=True, \
+			dataShape=(1,4,options.sequenceLength), maxPeakLength=options.maxPeakLength, chroms=options.trainChroms)
+	if not options.noValid:
+		# Make a validation set
+		allDataFileNameValid = options.outputFileNamePrefix + "_" + options.allDataFileNameValidSuffix
+		labelsFileNameValid = options.outputFileNamePrefix + "_" + options.labelsFileNameValidSuffix
+		makePositiveAndNegativeSequenceInputStringsFromNarrowPeaks(options.positivePeakFileName, options.negativePeakFileName, options.genomeFileName,\
+			allDataFileName=allDataFileNameValid, labelsFileName=labelsFileNameValid, createOptimalBed=True, createOptimalBedFilt=True, \
+			dataShape=(1,4,options.sequenceLength), maxPeakLength=options.maxPeakLength, chroms=options.validChroms)
 
 if __name__=="__main__":
 	options = parseArgument()
